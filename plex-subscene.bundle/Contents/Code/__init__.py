@@ -10,6 +10,9 @@ import copy
 SUBSCENE_LANG_FILTER = "http://localhost/data"
 SUBSCENE_RETURN_URL = "/subtitles/release?%s"
 SUBSCENE_QUERY = "http://subscene.com/subtitles/release?%s"
+SUBSCENE_HOST = "http://subscene.com"
+SUBSCENE_LANGUAGE_LOOKUP = {'Swedish': '39', 'German': '19', 'Farsi/Persian': '46', 'Hungarian/ English': '24', 'Estonian': '16', 'Telugu': '63', 'Vietnamese': '45', 'Romanian': '33', 'Azerbaijani': '55', 'Slovenian': '37', 'Malay': '50', 'Icelandic': '25', 'Hindi': '51', 'Dutch': '11', 'Brazillian Portuguese': '4', 'Korean': '28', 'Latvian': '29', 'Danish': '10', 'Indonesian': '44', 'Hungarian': '23', 'Catalan': '49', 'Bosnian': '60', 'Georgian': '62', 'Lithuanian': '43', 'Greenlandic': '57', 'French': '18', 'Norwegian': '30', 'Bengali': '54', 'Russian': '34', 'Thai': '40', 'Croatian': '8', 'Tamil': '59', 'Macedonian': '48', 'Bulgarian/ English': '6', 'Kurdish': '52', 'Finnish': '17', 'Ukranian': '56', 'Albanian': '1', 'Hebrew': '22', 'Bulgarian': '5', 'Turkish': '41', 'Tagalog': '53', 'Greek': '21', 'Burmese': '61', 'Chinese BG code': '7', 'English': '13', 'Serbian': '35', 'Esperanto': '47', 'Italian': '26', 'Portuguese': '32', 'Dutch/ English': '12', 'Big 5 code': '3', 'Japanese': '27', 'Manipuri': '65', 'Czech': '9', 'Slovak': '36', 'Spanish': '38', 'Urdu': '42', 'Polish': '31', 'Arabic': '2', 'English/ German': '15', 'Sinhala': '58'}
+
 
 def Start():
     HTTP.CacheTime = CACHE_1DAY
@@ -17,9 +20,10 @@ def Start():
     #Log(distance('a','b'))
     #Log(distance('zzzz','wwwwwwwwwww'))
     #Log(distance('masage','message'))
-    Log(searchSubs('en', filename))
+    Log(getSubsForPart(filename))
     Log("Subscene plugin started!!!")
-
+    
+    
 # data structures
 class SubInfo():
     def __init__(self, lang, url, sub, name):
@@ -60,11 +64,15 @@ def distance(src, dst):
 
 # scrapping functions 
 def searchSubs(lang, filename):
-    subUrl = None
+    subUrl = []
     
     name = os.path.splitext(os.path.basename(filename))[0]
     baseUrl = (SUBSCENE_RETURN_URL % urllib.urlencode( {'q': name} ))
-    request = HTTP.Request(url=SUBSCENE_LANG_FILTER, values={"ReturnUrl":urllib.quote_plus(baseUrl), "SelectedIds": 13, "HearingImpaired": '0'}, immediate=True)
+    request = HTTP.Request(url=SUBSCENE_LANG_FILTER, 
+        values={"ReturnUrl":urllib.quote_plus(baseUrl), 
+            "SelectedIds": SUBSCENE_LANGUAGE_LOOKUP[lang], 
+            "HearingImpaired": '0'}, 
+        immediate=True)
     request.load()
     content = request.content
     
@@ -75,20 +83,51 @@ def searchSubs(lang, filename):
     # for each subpage, analyze the proximity of the 2 strings!
     for subtitle in subpages:
         data = subtitle.xpath('div/span');
-        language = data[0]
+        language = data[0].text
         alternative = data[1].text
+        
+        if language != lang:
+            continue
+        
         score = distance(name, alternative)
         if score == 0: #exact match
             Log('Got a perfect match!')
             return subtitle.xpath('@href')
         elif Prefs['closest-match'] and score < bestScore: #closest match available
-            Log('it is not a perfect match, needed '+str(score)+' edition change')
+            Log('it is not a perfect match, needed '+str(score)+' edition change| '+name.strip().lower()+" @ " +alternative.strip().lower()+" for "+language )
             bestScore = score
             subUrl = subtitle.xpath('@href')
     
     return subUrl
     
+def getSubsForPart(filename):
+    # looking for subtitle for: filename
+    # list of objects with: language, url, subtitle path, extension.
+    siList = []
+    lang = Prefs['language']
+    subUrls = searchSubs(lang, filename)
     
+    for url in subUrls:
+        # go to the url and scrap the actual zip file to download.
+        root = HTML.ElementFromURL(SUBSCENE_HOST + url)
+        downloadItem = root.xpath("//a[@id='downloadButton']/@href")[0]
+        finalDownload = SUBSCENE_HOST + downloadItem
+        try:
+            zipArchive = Archive.ZipFromURL(finalDownload)
+
+            for name in zipArchive:
+                if name[-1] == "/":
+                    Log("Ignoring folder")
+                    continue
+
+                subData = zipArchive[name]
+                si = SubInfo(lang, finalDownload, subData, name)
+                siList.append(si)
+        except:
+            print "Unexpected error:", sys.exc_info()[0]
+            
+    return siList
+
 # Agent classes
 class PlexSubsceneAgentMovies(Agent.Movies):
     name = 'Plex Subscene Movies'
