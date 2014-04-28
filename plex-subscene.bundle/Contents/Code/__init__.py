@@ -35,7 +35,7 @@ def distance(src, dst):
     src = src.strip().lower()
     dst = dst.strip().lower()
     if src == dst:
-        return 0
+        return 100
     
     sizep=len(dst)+1
     sizet=len(src)+1
@@ -56,8 +56,8 @@ def distance(src, dst):
                 val = (1+matrix[i-1][j-1])
             matrix[i][j] = min(1+matrix[i-1][j], min(1+matrix[i][j-1], val))
             
-    return matrix[sizep-1][sizet-1]
-    
+    error = abs(((matrix[sizep-1][sizet-1] / len(src)) * 100) - 100)
+    return 100 - error
 
 # scrapping functions 
 def searchSubs(lang, filename):
@@ -75,7 +75,7 @@ def searchSubs(lang, filename):
     
     root = HTML.ElementFromString(content)
     subpages = root.xpath("//tr//td[@class='a1']/a") # @href
-    bestScore = len(name)
+    bestScore = 0
     
     # for each subpage, analyze the proximity of the 2 strings!
     for subtitle in subpages:
@@ -87,10 +87,10 @@ def searchSubs(lang, filename):
             continue
         
         score = distance(name, alternative)
-        if score == 0: #exact match
+        if score == 100: #exact match
             Log('Got a perfect match!')
             return subtitle.xpath('@href')
-        elif Prefs['closest-match'] and score < bestScore: #closest match available
+        elif Prefs['closest-match'] and score > bestScore: #closest match available
             Log('it is not a perfect match, needed '+str(score)+' edition change| '+name.strip().lower()+" @ " +alternative.strip().lower()+" for "+language )
             bestScore = score
             subUrl = subtitle.xpath('@href')
