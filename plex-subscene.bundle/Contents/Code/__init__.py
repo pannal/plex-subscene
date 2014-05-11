@@ -6,10 +6,14 @@ import zipfile
 import re
 import copy
 import sys
+import traceback
+import smtplib
+from email.mime.text import MIMEText
 
-SUBSCENE_LANG_FILTER = "http://subscene.com/filter"
-SUBSCENE_RETURN_URL = "/subtitles/release?%s"
-SUBSCENE_QUERY = "http://subscene.com/subtitles/release?%s"
+
+SUBSCENE_LANG_FILTER = "http://u.subscene.com/filter"
+SUBSCENE_RETURN_URL = "http://subscene.com/subtitles/release?q=%s"
+#SUBSCENE_QUERY = "http://subscene.com/subtitles/release?%s"
 SUBSCENE_HOST = "http://subscene.com"
 SUBSCENE_LANGUAGE_LOOKUP = {'Swedish': '39', 'German': '19', 'Farsi/Persian': '46', 'Hungarian/ English': '24', 'Estonian': '16', 'Telugu': '63', 'Vietnamese': '45', 'Romanian': '33', 'Azerbaijani': '55', 'Slovenian': '37', 'Malay': '50', 'Icelandic': '25', 'Hindi': '51', 'Dutch': '11', 'Brazillian Portuguese': '4', 'Korean': '28', 'Latvian': '29', 'Danish': '10', 'Indonesian': '44', 'Hungarian': '23', 'Catalan': '49', 'Bosnian': '60', 'Georgian': '62', 'Lithuanian': '43', 'Greenlandic': '57', 'French': '18', 'Norwegian': '30', 'Bengali': '54', 'Russian': '34', 'Thai': '40', 'Croatian': '8', 'Tamil': '59', 'Macedonian': '48', 'Bulgarian/ English': '6', 'Kurdish': '52', 'Finnish': '17', 'Ukranian': '56', 'Albanian': '1', 'Hebrew': '22', 'Bulgarian': '5', 'Turkish': '41', 'Tagalog': '53', 'Greek': '21', 'Burmese': '61', 'Chinese BG code': '7', 'English': '13', 'Serbian': '35', 'Esperanto': '47', 'Italian': '26', 'Portuguese': '32', 'Dutch/ English': '12', 'Big 5 code': '3', 'Japanese': '27', 'Manipuri': '65', 'Czech': '9', 'Slovak': '36', 'Spanish': '38', 'Urdu': '42', 'Polish': '31', 'Arabic': '2', 'English/ German': '15', 'Sinhala': '58'}
 
@@ -35,7 +39,7 @@ def distance(src, dst):
     src = src.strip().lower()
     dst = dst.strip().lower()
     if src == dst:
-        return 0
+        return 100
     
     sizep=len(dst)+1
     sizet=len(src)+1
@@ -56,8 +60,8 @@ def distance(src, dst):
                 val = (1+matrix[i-1][j-1])
             matrix[i][j] = min(1+matrix[i-1][j], min(1+matrix[i][j-1], val))
             
-    return matrix[sizep-1][sizet-1]
-    
+    error = abs(((matrix[sizep-1][sizet-1] / len(src)) * 100) - 100)
+    return 100 - error
 
 # scrapping functions 
 def searchSubs(lang, filename):
@@ -75,7 +79,7 @@ def searchSubs(lang, filename):
     
     root = HTML.ElementFromString(content)
     subpages = root.xpath("//tr//td[@class='a1']/a") # @href
-    bestScore = len(name)
+    bestScore = 0
     
     # for each subpage, analyze the proximity of the 2 strings!
     for subtitle in subpages:
@@ -87,11 +91,13 @@ def searchSubs(lang, filename):
             continue
         
         score = distance(name, alternative)
-        if score == 0: #exact match
+        if score == 100: #exact match
             Log('Got a perfect match!')
             return subtitle.xpath('@href')
-        elif Prefs['closest-match'] and score < bestScore: #closest match available
-            Log('it is not a perfect match, needed '+str(score)+' edition change| '+name.strip().lower()+" @ " +alternative.strip().lower()+" for "+language )
+        elif Prefs['closest-match'] and score > bestScore: #closest match available
+            Log('it is not a perfect match, needed '+str(score)+'% edition changes | '
+                +name.strip().lower()+" @ " +alternative.strip().lower()
+                +" for "+language )
             bestScore = score
             subUrl = subtitle.xpath('@href')
     
@@ -137,12 +143,15 @@ class PlexSubsceneAgentMovies(Agent.Movies):
     def update(self, metadata, media, lang):
         for item in media.items:
             for part in item.parts:
-                Log("Title: %s" % media.title)
-                Log("Filename: %s" % part.file)
-                siList = getSubsForPart(part.file)
+                try:
+                    Log("Title: %s" % media.title)
+                    Log("Filename: %s" % part.file)
+                    siList = getSubsForPart(part.file)
 
-                for si in siList:
-                    part.subtitles[Locale.Language.Match(si.lang)][si.url] = Proxy.Media(si.sub, ext=si.ext)
+                    for si in siList:
+                        part.subtitles[Locale.Language.Match(si.lang)][si.url] = Proxy.Media(si.sub, ext=si.ext)
+                except Exception as e:
+                    Log(traceback.format_exc(e))
 
 
 
@@ -162,8 +171,12 @@ class PlexSubsceneAgentTVShows(Agent.TV_Shows):
                     Log("show: %s" % media.title)
                     Log("Season: %s, Ep: %s" % (season, episode))
                     for part in item.parts:
-                        siList = getSubsForPart(part.file)
+                        try:
+                            v = 1/0
+                            siList = getSubsForPart(part.file)
 
-                        for si in siList:
-                            part.subtitles[Locale.Language.Match(si.lang)][si.url] = Proxy.Media(si.sub, ext=si.ext)
+                            for si in siList:
+                                part.subtitles[Locale.Language.Match(si.lang)][si.url] = Proxy.Media(si.sub, ext=si.ext)
+                        except Exception as e:
+                            Log(traceback.format_exc(e))
 
