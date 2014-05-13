@@ -172,7 +172,6 @@ class PlexSubsceneAgentTVShows(Agent.TV_Shows):
                     Log("Season: %s, Ep: %s" % (season, episode))
                     for part in item.parts:
                         try:
-                            v = 1/0
                             siList = getSubsForPart(part.file)
 
                             for si in siList:
