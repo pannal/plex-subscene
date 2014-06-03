@@ -7,9 +7,16 @@
 	},
 	{
 		"id": "language",
-		"label": "Subtitle Language",
+		"label": "Subtitle Primary Language",
 		"type": "enum",
 		"values": ["Albanian", "Arabic", "Azerbaijani", "Bengali", "Big 5 code", "Bosnian", "Brazillian Portuguese", "Bulgarian", "Bulgarian/ English", "Burmese", "Catalan", "Chinese BG code", "Croatian", "Czech", "Danish", "Dutch", "Dutch/ English", "English", "English/ German", "Esperanto", "Estonian", "Farsi/Persian", "Finnish", "French", "Georgian", "German", "Greek", "Greenlandic", "Hebrew", "Hindi", "Hungarian", "Hungarian/ English", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Kurdish", "Latvian", "Lithuanian", "Macedonian", "Malay", "Manipuri", "Norwegian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Swedish", "Tagalog", "Tamil", "Telugu", "Thai", "Turkish", "Ukranian", "Urdu", "Vietnamese"],
 		"default": "English"
+	},
+    {
+		"id": "language-secondary",
+		"label": "Subtitle Secondary Language",
+		"type": "enum",
+		"values": ["", "Albanian", "Arabic", "Azerbaijani", "Bengali", "Big 5 code", "Bosnian", "Brazillian Portuguese", "Bulgarian", "Bulgarian/ English", "Burmese", "Catalan", "Chinese BG code", "Croatian", "Czech", "Danish", "Dutch", "Dutch/ English", "English", "English/ German", "Esperanto", "Estonian", "Farsi/Persian", "Finnish", "French", "Georgian", "German", "Greek", "Greenlandic", "Hebrew", "Hindi", "Hungarian", "Hungarian/ English", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Kurdish", "Latvian", "Lithuanian", "Macedonian", "Malay", "Manipuri", "Norwegian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Swedish", "Tagalog", "Tamil", "Telugu", "Thai", "Turkish", "Ukranian", "Urdu", "Vietnamese"],
+		"default": ""
 	}
 ]

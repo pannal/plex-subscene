@@ -107,26 +107,31 @@ def getSubsForPart(filename):
     # looking for subtitle for: filename
     # list of objects with: language, url, subtitle path, extension.
     siList = []
-    lang = Prefs['language']
-    subUrls = searchSubs(lang, filename)
+    langs = [Prefs['language'], Prefs['language-secondary']]
     
-    for url in subUrls:
-        # go to the url and scrap the actual zip file to download.
-        root = HTML.ElementFromURL(SUBSCENE_HOST + url)
-        downloadItem = root.xpath("//a[@id='downloadButton']/@href")[0]
-        finalDownload = SUBSCENE_HOST + downloadItem
-        
-        request = HTTP.Request(url=finalDownload, immediate=True)
-        request.load()
-        file = tempfile.NamedTemporaryFile(mode='w+b',delete=False)
-        file.write(request.content)
-        file.close()
-        
-        zipArchive = zipfile.ZipFile(file.name)
-        for subName in zipArchive.namelist():
-            subData = zipArchive.read(subName)
-            si = SubInfo(lang, finalDownload, subData, subName)
-            siList.append(si)
+    for lang in langs:
+        if lang == '':
+            continue
+            
+        subUrls = searchSubs(lang, filename)
+
+        for url in subUrls:
+            # go to the url and scrap the actual zip file to download.
+            root = HTML.ElementFromURL(SUBSCENE_HOST + url)
+            downloadItem = root.xpath("//a[@id='downloadButton']/@href")[0]
+            finalDownload = SUBSCENE_HOST + downloadItem
+
+            request = HTTP.Request(url=finalDownload, immediate=True)
+            request.load()
+            file = tempfile.NamedTemporaryFile(mode='w+b',delete=False)
+            file.write(request.content)
+            file.close()
+
+            zipArchive = zipfile.ZipFile(file.name)
+            for subName in zipArchive.namelist():
+                subData = zipArchive.read(subName)
+                si = SubInfo(lang, finalDownload, subData, subName)
+                siList.append(si)
                 
     return siList
 
